@@ -1,0 +1,22 @@
+MetaAMRplus_DB_v1.0
+===================
+
+Release date: 2026-01-15
+Author: Misheck Shawa
+
+Contents:
+- Experimentally verified metal resistance genes (BacMet EXP)
+- Presence-only antimicrobial resistance genes (AMRFinder)
+- No SNP-based or mutation-only resistance determinants
+- Deduplicated protein sequences
+- BLAST-safe headers with ID mapping
+
+Total sequences: 8783
+
+Files:
+- db/MetaAMRplus_v1.0.blast.faa
+- db/MetaAMRplus_v1.0.idmap.tsv
+- db/MetaAMRplus_DB_v1.0.*
+
+Checksum:
+See db/MetaAMRplus_DB_v1.0.sha256

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DB_VERSION="v1.0"
+BASE_URL="https://example.org/metaamrplus/db/${DB_VERSION}"
+INSTALL_DIR="$HOME/.metaamrplus/db"
+
+FILES=(
+  MetaAMRplus_DB_v1.0.phr
+  MetaAMRplus_DB_v1.0.pin
+  MetaAMRplus_DB_v1.0.psq
+  MetaAMRplus_v1.0.idmap.tsv
+  MetaAMRplus_v1.0.annotations.tsv
+  RELEASE.txt
+)
+
+echo "========================================"
+echo " MetaAMRplus database installer"
+echo " DB version: ${DB_VERSION}"
+echo " Install dir: ${INSTALL_DIR}"
+echo "========================================"
+
+mkdir -p "$INSTALL_DIR"
+
+cd "$INSTALL_DIR"
+
+for f in "${FILES[@]}"; do
+  if [[ -f "$f" ]]; then
+    echo "✔ $f already exists — skipping"
+  else
+    echo "⬇ Downloading $f"
+    curl -fLO "${BASE_URL}/${f}"
+  fi
+done
+
+echo
+echo "✔ MetaAMRplus database installation complete"
+echo "✔ Files installed in: $INSTALL_DIR"
+

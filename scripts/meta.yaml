@@ -1,0 +1,63 @@
+{% set name = "metaamrplus" %}
+{% set version = "1.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/misheckshawa/MetaAMRplus/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: REPLACE_WITH_TARBALL_SHA256
+
+build:
+  number: 0
+  noarch: generic
+  script: |
+    mkdir -p $PREFIX/bin
+    mkdir -p $PREFIX/share/{{ name }}
+
+    # Install main executables
+    install -m 755 bin/metaamrplus $PREFIX/bin/metaamrplus
+    install -m 755 bin/metaamrplus_batch $PREFIX/bin/metaamrplus_batch
+
+    # Install helper scripts
+    install -m 755 scripts/annotate_metaamrplus.py \
+      $PREFIX/share/{{ name }}/annotate_metaamrplus.py
+
+requirements:
+  run:
+    - bash
+    - prodigal
+    - blast
+    - python >=3.8
+    - coreutils
+    - awk
+
+test:
+  commands:
+    - metaamrplus --version
+    - metaamrplus --help
+
+about:
+  home: https://github.com/misheckshawa/MetaAMRplus
+  license: MIT
+  license_file: LICENSE
+  summary: "MetaAMRplus: simultaneous detection of antimicrobial and metal resistance genes with distance-based colocalisation"
+  description: |
+    MetaAMRplus is a genome analysis platform for the simultaneous detection
+    of antimicrobial resistance (AMR) and metal resistance genes in bacterial
+    genomes. The tool integrates ORF prediction, protein homology searches,
+    curated annotation, and distance-based AMR–metal colocalisation analysis
+    to enable gene-level and network-level investigation of co-selection.
+  doc_url: https://github.com/misheckshawa/MetaAMRplus
+  dev_url: https://github.com/misheckshawa/MetaAMRplus
+
+extra:
+  identifiers:
+    - biotools:metaamrplus
+  keywords:
+    - antimicrobial resistance
+    - metal resistance
+    - plasmids
+    - colocalisation
+    - bacterial genomics

@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# Output directories
+results/
+metaamrplus_results/
+archive/
+
+# Genome / sequence files
+*.fasta
+*.fa
+*.fna
+*.faa
+*.gff
+
+# Tables and intermediate outputs
+*.tsv
+*.txt
+
+# Release metadata (explicitly keep)
+!RELEASE.txt
+
+# Sample datasets
+ncbigenomes/
+plasmids_fasta/
+sampled_*
+
+# Conda / environment artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+
