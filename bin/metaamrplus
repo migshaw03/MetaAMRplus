@@ -22,7 +22,7 @@ EOF
 }
 
 ########################################
-# Help / version
+# Help / version (MUST EXIT EARLY)
 ########################################
 if [[ "${1:-}" == "--version" ]]; then
   show_banner
@@ -52,7 +52,7 @@ GENOME="$1"
 [[ -f "$GENOME" ]] || { echo "ERROR: Genome not found: $GENOME"; exit 1; }
 
 ########################################
-# Paths
+# Paths (SAFE AFTER ARG CHECK)
 ########################################
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESULTS_DIR="${METAAMRPLUS_RESULTS:-$PWD/metaamrplus_results}"
@@ -70,7 +70,7 @@ DB_PREFIX="$DB_BASE/MetaAMRplus_DB_v1.0"
 IDMAP="$DB_BASE/MetaAMRplus_v1.0.idmap.tsv"
 
 ########################################
-# Checks
+# Dependency checks
 ########################################
 for tool in prodigal blastp awk python3; do
   command -v "$tool" >/dev/null 2>&1 || {
@@ -105,7 +105,7 @@ echo "[0/8] FASTA validation"
 grep -q '^>' "$GENOME" || { echo "ERROR: Invalid FASTA"; exit 1; }
 
 ########################################
-# Step 1: Filter short contigs (CRASH FIX)
+# Step 1: Filter short contigs
 ########################################
 FILTERED_FASTA="$OUTDIR/${PREFIX}.filtered.fasta"
 
@@ -134,7 +134,7 @@ if [[ ! -s "$FILTERED_FASTA" ]]; then
 fi
 
 ########################################
-# Step 2: ORF prediction (safe)
+# Step 2: ORF prediction
 ########################################
 echo "[1/8] ORF prediction (Prodigal)"
 
@@ -246,6 +246,6 @@ echo "[8/8] Distance-based AMR–metal colocalisation (≤${COLOC_DIST} bp)"
 
 echo
 echo "✔ MetaAMRplus analysis complete"
-echo "✔ Crash-safe (Prodigal-guarded)"
+echo "✔ Bioconda-safe (--help requires no DB)"
 echo "✔ Results written to: $OUTDIR"
 
