@@ -1,39 +1,42 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DB_VERSION="v1.0"
-BASE_URL="https://example.org/metaamrplus/db/${DB_VERSION}"
-INSTALL_DIR="$HOME/.metaamrplus/db"
+echo "MetaAMRplus database installer"
 
-FILES=(
-  MetaAMRplus_DB_v1.0.phr
-  MetaAMRplus_DB_v1.0.pin
-  MetaAMRplus_DB_v1.0.psq
-  MetaAMRplus_v1.0.idmap.tsv
-  MetaAMRplus_v1.0.annotations.tsv
-  RELEASE.txt
-)
+if [[ -z "${CONDA_PREFIX:-}" ]]; then
+  echo "ERROR: No active conda environment detected"
+  echo "Please activate your conda environment first"
+  exit 1
+fi
 
-echo "========================================"
-echo " MetaAMRplus database installer"
-echo " DB version: ${DB_VERSION}"
-echo " Install dir: ${INSTALL_DIR}"
-echo "========================================"
+DB_BASE="${CONDA_PREFIX}/db"
+DB_NAME="MetaAMRplus_DB_v1.0"
+DB_DIR="${DB_BASE}/${DB_NAME}"
 
-mkdir -p "$INSTALL_DIR"
+mkdir -p "${DB_BASE}"
 
-cd "$INSTALL_DIR"
+if [[ -d "${DB_DIR}" ]]; then
+  echo "✔ MetaAMRplus database already exists:"
+  echo "  ${DB_DIR}"
+  exit 0
+fi
 
-for f in "${FILES[@]}"; do
-  if [[ -f "$f" ]]; then
-    echo "✔ $f already exists — skipping"
-  else
-    echo "⬇ Downloading $f"
-    curl -fLO "${BASE_URL}/${f}"
-  fi
-done
+TMP_DIR="$(mktemp -d)"
+cd "${TMP_DIR}"
+
+echo "Downloading MetaAMRplus database..."
+wget -q --show-progress \
+  https://github.com/migshaw03/MetaAMRplus/releases/download/v1.0/MetaAMRplus_DB_v1.0.tar.gz
+
+echo "Extracting database..."
+tar -xzf MetaAMRplus_DB_v1.0.tar.gz
+
+mv MetaAMRplus_DB_v1.0 "${DB_BASE}"
+
+cd /
+rm -rf "${TMP_DIR}"
 
 echo
 echo "✔ MetaAMRplus database installation complete"
-echo "✔ Files installed in: $INSTALL_DIR"
+echo "✔ Location: ${DB_DIR}"
 
