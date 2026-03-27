@@ -3,60 +3,43 @@ set -euo pipefail
 
 echo "MetaAMRplus database installer (conda-safe)"
 
-# Check if running inside a conda environment
+# Check conda environment
 if [[ -z "${CONDA_PREFIX:-}" ]]; then
-  echo "ERROR: No active conda environment detected."
-  echo "Please activate your conda environment first."
+  echo "ERROR: No active conda environment detected"
+  echo "Please activate your conda environment first"
   exit 1
 fi
 
-# Set destination paths
+# Destination in active environment
 DB_BASE="${CONDA_PREFIX}/share/metaamrplus/db"
 DB_NAME="MetaAMRplus_DB_v1.0"
 DB_DIR="${DB_BASE}/${DB_NAME}"
-IDMAP_FILE="${CONDA_PREFIX}/share/metaamrplus/MetaAMRplus_v1.0.idmap.tsv"
+IDMAP_DEST="${CONDA_PREFIX}/share/metaamrplus/MetaAMRplus_v1.0.idmap.tsv"
 
-# Check if DB already exists
-if [[ -d "${DB_DIR}" && -f "${IDMAP_FILE}" ]]; then
+mkdir -p "${DB_BASE}"
+
+# Already installed?
+if [[ -d "${DB_DIR}" && -f "${IDMAP_DEST}" ]]; then
   echo "✔ MetaAMRplus database already exists:"
   echo "  ${DB_DIR}"
   exit 0
 fi
 
-# Ensure destination directories exist
-mkdir -p "${DB_BASE}"
+# Find DB in conda package cache
+PKG_DB="$(find $(conda info --base)/pkgs -type d -name "metaamrplus-*" -exec find {} -type d -name "MetaAMRplus_DB_v1.0" \; | head -n1)"
+PKG_IDMAP="$(find $(conda info --base)/pkgs -type f -name "MetaAMRplus_v1.0.idmap.tsv" | head -n1)"
 
-# Locate MetaAMRplus package in conda environment
-PACKAGE_DIR="$(conda list metaamrplus --json | python3 -c "
-import sys, json, os
-data = json.load(sys.stdin)
-if data:
-    # Use the first package entry
-    prefix = data[0]['prefix']
-    print(os.path.join(prefix, 'share', 'metaamrplus'))
-")"
-
-if [[ ! -d "${PACKAGE_DIR}" ]]; then
-  echo "ERROR: Cannot find MetaAMRplus package files inside the conda environment."
+if [[ -z "${PKG_DB}" || -z "${PKG_IDMAP}" ]]; then
+  echo "ERROR: Cannot find MetaAMRplus DB in conda packages"
   exit 1
 fi
 
-# Copy DB and ID map from package
-if [[ -d "${PACKAGE_DIR}/db/${DB_NAME}" ]]; then
-  cp -r "${PACKAGE_DIR}/db/${DB_NAME}" "${DB_BASE}/"
-else
-  echo "ERROR: Database folder not found in package: ${PACKAGE_DIR}/db/${DB_NAME}"
-  exit 1
-fi
-
-if [[ -f "${PACKAGE_DIR}/MetaAMRplus_v1.0.idmap.tsv" ]]; then
-  cp "${PACKAGE_DIR}/MetaAMRplus_v1.0.idmap.tsv" "${CONDA_PREFIX}/share/metaamrplus/"
-else
-  echo "ERROR: ID map file not found in package: ${PACKAGE_DIR}/MetaAMRplus_v1.0.idmap.tsv"
-  exit 1
-fi
+# Copy DB
+echo "Copying MetaAMRplus database into environment..."
+cp -r "${PKG_DB}" "${DB_BASE}"
+cp "${PKG_IDMAP}" "${IDMAP_DEST}"
 
 echo
 echo "✔ MetaAMRplus database installation complete"
-echo "✔ Database location: ${DB_DIR}"
-echo "✔ ID map location: ${IDMAP_FILE}"
+echo "✔ DB location: ${DB_DIR}"
+echo "✔ ID map location: ${IDMAP_DEST}"
