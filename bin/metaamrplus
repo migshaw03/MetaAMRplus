@@ -60,7 +60,7 @@ RESULTS_DIR="${METAAMRPLUS_RESULTS:-$PWD/metaamrplus_results}"
 if [[ -n "${METAAMRPLUS_DB:-}" ]]; then
   DB_BASE="$METAAMRPLUS_DB"
 elif [[ -n "${CONDA_PREFIX:-}" ]]; then
-  DB_BASE="$CONDA_PREFIX/db"
+  DB_BASE="$CONDA_PREFIX/share/metaamrplus/db"
 else
   echo "ERROR: METAAMRPLUS_DB not set and not in conda"
   exit 1
