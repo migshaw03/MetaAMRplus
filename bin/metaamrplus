@@ -57,16 +57,18 @@ GENOME="$1"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESULTS_DIR="${METAAMRPLUS_RESULTS:-$PWD/metaamrplus_results}"
 
+# DB path resolution
 if [[ -n "${METAAMRPLUS_DB:-}" ]]; then
-  DB_BASE="$METAAMRPLUS_DB"
+    DB_BASE="$METAAMRPLUS_DB"
 elif [[ -n "${CONDA_PREFIX:-}" ]]; then
-  DB_BASE="$CONDA_PREFIX/share/metaamrplus/db"
+    # standard location inside Conda environment
+    DB_BASE="$CONDA_PREFIX/share/metaamrplus"
 else
-  echo "ERROR: METAAMRPLUS_DB not set and not in conda"
-  exit 1
+    echo "ERROR: METAAMRPLUS_DB not set and not in conda"
+    exit 1
 fi
 
-DB_PREFIX="$DB_BASE/MetaAMRplus_DB_v1.0"
+DB_PREFIX="$DB_BASE/db/MetaAMRplus_DB_v1.0"
 IDMAP="$DB_BASE/MetaAMRplus_v1.0.idmap.tsv"
 
 ########################################
