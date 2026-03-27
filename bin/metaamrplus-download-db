@@ -9,7 +9,7 @@ if [[ -z "${CONDA_PREFIX:-}" ]]; then
   exit 1
 fi
 
-DB_BASE="${CONDA_PREFIX}/db"
+DB_BASE="${CONDA_PREFIX}/share/metaamrplus/db"
 DB_NAME="MetaAMRplus_DB_v1.0"
 DB_DIR="${DB_BASE}/${DB_NAME}"
 
