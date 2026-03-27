@@ -24,6 +24,10 @@ build:
     install -m 755 scripts/annotate_metaamrplus.py \
       $PREFIX/share/{{ name }}/annotate_metaamrplus.py
 
+    # Install BLAST database
+    mkdir -p $PREFIX/share/{{ name }}/db
+    cp -r db/MetaAMRplus_DB_v1.0.* $PREFIX/share/{{ name }}/db/
+
 requirements:
   run:
     - bash
