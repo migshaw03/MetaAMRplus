@@ -102,11 +102,28 @@ with open(blast_file) as f:
         meta = idmap.get(sseqid.strip(), "NA")
 
         meta_dict = {}
-        if meta != "NA":
-            for item in meta.split("|"):
-                if "=" in item:
-                    k, v = item.split("=", 1)
-                    meta_dict[k.strip()] = v.strip()
+
+if meta != "NA":
+
+    # Case 1: future format (key=value)
+    if "|" in meta and "=" in meta:
+        for item in meta.split("|"):
+            if "=" in item:
+                k, v = item.split("=", 1)
+                meta_dict[k.strip()] = v.strip()
+
+    # Case 2: current format (whitespace-separated)
+    else:
+        parts = meta.split()
+
+        if len(parts) >= 1:
+            meta_dict["gene"] = parts[0]
+
+        if len(parts) >= 2:
+            meta_dict["type"] = parts[1]
+
+        if len(parts) >= 3:
+            meta_dict["source"] = parts[2]
 
         gene = meta_dict.get("gene", "NA")
         gene_type = meta_dict.get("type", "NA")
