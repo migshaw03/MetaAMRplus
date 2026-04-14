@@ -13,7 +13,7 @@ build:
   number: 0
   noarch: generic
   script: |
-    set -e
+    set -euo pipefail
 
     mkdir -p $PREFIX/bin
     mkdir -p $PREFIX/share/metaamrplus
@@ -32,13 +32,20 @@ build:
       $PREFIX/share/metaamrplus/annotate_metaamrplus.py
 
     # -----------------------------
-    # FIXED: GitHub tarball has top-level folder
-    # MetaAMRplus-{{ version }}/
+    # FIXED: robust DB detection (CRITICAL FIX)
+    # GitHub tarball extracts as MetaAMRplus-1.4.1/
     # -----------------------------
-    cp $SRC_DIR/*/db/MetaAMRplus_DB_v1.0.* \
+    SRC_DB_DIR=$(find $SRC_DIR -type d -name "db" | head -n 1)
+
+    if [[ -z "$SRC_DB_DIR" ]]; then
+      echo "ERROR: DB directory not found in source tree"
+      exit 1
+    fi
+
+    cp "$SRC_DB_DIR"/MetaAMRplus_DB_v1.0.* \
       $PREFIX/share/metaamrplus/db/
 
-    cp $SRC_DIR/*/db/MetaAMRplus_v1.0.idmap.tsv \
+    cp "$SRC_DB_DIR"/MetaAMRplus_v1.0.idmap.tsv \
       $PREFIX/share/metaamrplus/db/
 
 requirements:
@@ -61,5 +68,5 @@ about:
   license_file: LICENSE
   summary: "MetaAMRplus: detection of AMR and metal resistance genes with colocalisation analysis"
   description: |
-    MetaAMRplus detects antimicrobial resistance (AMR) and metal resistance genes
-    from bacterial genomes and evaluates their genomic colocalisation.
+    MetaAMRplus is a genome analysis tool for detecting antimicrobial resistance (AMR)
+    and metal resistance genes and identifying their genomic colocalisation.
