@@ -2,11 +2,11 @@
 set -euo pipefail
 
 ############################################
-# MetaAMRplus Batch Runner v1.4
+# MetaAMRplus Batch Runner v1.4.1
 # Author: Misheck Shawa
 ############################################
 
-VERSION="MetaAMRplus_batch v1.4"
+VERSION="MetaAMRplus_batch v1.4.1"
 COLOCAL_DISTANCE=10000   # 10 kb
 
 ############################################
