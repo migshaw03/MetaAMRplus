@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://github.com/migshaw03/MetaAMRplus/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: <PUT_REAL_SHA256_HERE>
+  sha256: 47c54705eca30762bf2db36f118da96a9e06630c4507dab7d9f6b4b8c98e47e4
 
 build:
   number: 0
