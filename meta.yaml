@@ -13,17 +13,33 @@ build:
   number: 0
   noarch: generic
   script: |
+    set -e
+
     mkdir -p $PREFIX/bin
+    mkdir -p $PREFIX/share/metaamrplus
     mkdir -p $PREFIX/share/metaamrplus/db
 
+    # -----------------------------
+    # Install executables
+    # -----------------------------
     install -m 755 bin/metaamrplus $PREFIX/bin/metaamrplus
     install -m 755 bin/metaamrplus_batch $PREFIX/bin/metaamrplus_batch
 
+    # -----------------------------
+    # Install annotation script
+    # -----------------------------
     install -m 755 bin/annotate_metaamrplus.py \
       $PREFIX/share/metaamrplus/annotate_metaamrplus.py
 
-    cp db/MetaAMRplus_DB_v1.0.* $PREFIX/share/metaamrplus/db/
-    cp db/MetaAMRplus_v1.0.idmap.tsv $PREFIX/share/metaamrplus/db/
+    # -----------------------------
+    # FIXED: GitHub tarball has top-level folder
+    # MetaAMRplus-{{ version }}/
+    # -----------------------------
+    cp $SRC_DIR/*/db/MetaAMRplus_DB_v1.0.* \
+      $PREFIX/share/metaamrplus/db/
+
+    cp $SRC_DIR/*/db/MetaAMRplus_v1.0.idmap.tsv \
+      $PREFIX/share/metaamrplus/db/
 
 requirements:
   run:
@@ -37,8 +53,13 @@ requirements:
 test:
   commands:
     - metaamrplus --help
+    - metaamrplus --version
 
 about:
   home: https://github.com/migshaw03/MetaAMRplus
   license: MIT
+  license_file: LICENSE
   summary: "MetaAMRplus: detection of AMR and metal resistance genes with colocalisation analysis"
+  description: |
+    MetaAMRplus detects antimicrobial resistance (AMR) and metal resistance genes
+    from bacterial genomes and evaluates their genomic colocalisation.
