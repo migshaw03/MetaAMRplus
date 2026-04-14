@@ -1,0 +1,44 @@
+{% set name = "metaamrplus" %}
+{% set version = "1.4.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/migshaw03/MetaAMRplus/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: <PUT_REAL_SHA256_HERE>
+
+build:
+  number: 0
+  noarch: generic
+  script: |
+    mkdir -p $PREFIX/bin
+    mkdir -p $PREFIX/share/metaamrplus/db
+
+    install -m 755 bin/metaamrplus $PREFIX/bin/metaamrplus
+    install -m 755 bin/metaamrplus_batch $PREFIX/bin/metaamrplus_batch
+
+    install -m 755 bin/annotate_metaamrplus.py \
+      $PREFIX/share/metaamrplus/annotate_metaamrplus.py
+
+    cp db/MetaAMRplus_DB_v1.0.* $PREFIX/share/metaamrplus/db/
+    cp db/MetaAMRplus_v1.0.idmap.tsv $PREFIX/share/metaamrplus/db/
+
+requirements:
+  run:
+    - bash
+    - python >=3.8
+    - blast
+    - prodigal
+    - awk
+    - coreutils
+
+test:
+  commands:
+    - metaamrplus --help
+
+about:
+  home: https://github.com/migshaw03/MetaAMRplus
+  license: MIT
+  summary: "MetaAMRplus: detection of AMR and metal resistance genes with colocalisation analysis"
