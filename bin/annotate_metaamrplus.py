@@ -25,7 +25,7 @@ if db_dir is None or not os.path.exists(db_dir + ".psq"):
     sys.stderr.write("Set METAAMRPLUS_DB or install via Conda.\n")
     sys.exit(1)
 
-VERSION = "1.4"
+VERSION = "1.4.1"
 
 if len(sys.argv) != 3:
     sys.stderr.write(
