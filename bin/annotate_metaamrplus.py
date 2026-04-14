@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import sys
-
 import os
 
 # -----------------------------
@@ -11,7 +10,13 @@ db_dir = os.environ.get("METAAMRPLUS_DB")
 if db_dir is None:
     conda_prefix = os.environ.get("CONDA_PREFIX")
     if conda_prefix:
-        db_dir = os.path.join(conda_prefix, "share", "metaamrplus", "db", "MetaAMRplus_DB_v1.0")
+        db_dir = os.path.join(
+            conda_prefix,
+            "share",
+            "metaamrplus",
+            "db",
+            "MetaAMRplus_DB_v1.0"
+        )
     else:
         db_dir = None
 
@@ -24,8 +29,8 @@ VERSION = "1.4"
 
 if len(sys.argv) != 3:
     sys.stderr.write(
-        "MetaAMRplus annotate script v%s\n"
-        "Usage: annotate_metaamrplus.py blast.filtered.tsv idmap.tsv\n" % VERSION
+        f"MetaAMRplus annotate script v{VERSION}\n"
+        "Usage: annotate_metaamrplus.py blast.filtered.tsv idmap.tsv\n"
     )
     sys.exit(1)
 
@@ -92,6 +97,9 @@ with open(blast_file) as f:
 
         qseqid, sseqid, pident, length, qlen, evalue, bitscore = cols
 
+        # -----------------------------
+        # Coverage calculation
+        # -----------------------------
         try:
             coverage = round((float(length) / float(qlen)) * 100, 2)
             if coverage > 100:
@@ -99,58 +107,72 @@ with open(blast_file) as f:
         except Exception:
             coverage = "NA"
 
+        # -----------------------------
+        # Lookup annotation
+        # -----------------------------
         meta = idmap.get(sseqid.strip(), "NA")
 
-        meta_dict = {}
-
-if meta != "NA":
-
-    # Case 1: future format (key=value)
-    if "|" in meta and "=" in meta:
-        for item in meta.split("|"):
-            if "=" in item:
-                k, v = item.split("=", 1)
-                meta_dict[k.strip()] = v.strip()
-
-    # Case 2: current format (whitespace-separated)
-    else:
-        parts = meta.split()
-
-        if len(parts) >= 1:
-            meta_dict["gene"] = parts[0]
-
-        if len(parts) >= 2:
-            meta_dict["type"] = parts[1]
-
-        if len(parts) >= 3:
-            meta_dict["source"] = parts[2]
-
-        gene = meta_dict.get("gene", "NA")
-        gene_type = meta_dict.get("type", "NA")
-        phenotype = meta_dict.get("phenotype", "NA")
-        mechanism = meta_dict.get("mechanism", "NA")
-        source = meta_dict.get("source", "NA")
+        # Default safe values (IMPORTANT FIX)
+        gene = "NA"
+        gene_type = "NA"
+        phenotype = "NA"
+        mechanism = "NA"
+        source = "NA"
 
         # -----------------------------
-        # CRITICAL FIX: metal override
+        # Parse annotation metadata
         # -----------------------------
-        is_metal = False
+        if meta != "NA":
 
-        if phenotype != "NA":
-            for kw in METAL_KEYWORDS:
-                if kw in phenotype.lower():
-                    is_metal = True
-                    break
+            meta_dict = {}
 
-        if gene != "NA":
-            for prefix in METAL_GENE_PREFIXES:
-                if gene.lower().startswith(prefix):
-                    is_metal = True
-                    break
+            # Case 1: structured format (key=value)
+            if "|" in meta and "=" in meta:
+                for item in meta.split("|"):
+                    if "=" in item:
+                        k, v = item.split("=", 1)
+                        meta_dict[k.strip()] = v.strip()
 
-        if is_metal:
-            gene_type = "metal"
+            # Case 2: legacy whitespace format
+            else:
+                parts = meta.split()
 
+                if len(parts) >= 1:
+                    meta_dict["gene"] = parts[0]
+                if len(parts) >= 2:
+                    meta_dict["type"] = parts[1]
+                if len(parts) >= 3:
+                    meta_dict["source"] = parts[2]
+
+            gene = meta_dict.get("gene", "NA")
+            gene_type = meta_dict.get("type", "NA")
+            phenotype = meta_dict.get("phenotype", "NA")
+            mechanism = meta_dict.get("mechanism", "NA")
+            source = meta_dict.get("source", "NA")
+
+            # -----------------------------
+            # Metal override logic
+            # -----------------------------
+            is_metal = False
+
+            if phenotype != "NA":
+                for kw in METAL_KEYWORDS:
+                    if kw in phenotype.lower():
+                        is_metal = True
+                        break
+
+            if gene != "NA":
+                for prefix in METAL_GENE_PREFIXES:
+                    if gene.lower().startswith(prefix):
+                        is_metal = True
+                        break
+
+            if is_metal:
+                gene_type = "metal"
+
+        # -----------------------------
+        # Output result
+        # -----------------------------
         print("\t".join([
             qseqid,
             sseqid,
@@ -163,4 +185,3 @@ if meta != "NA":
             str(coverage),
             bitscore
         ]))
-
