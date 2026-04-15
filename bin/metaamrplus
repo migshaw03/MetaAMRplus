@@ -7,7 +7,7 @@ set -euo pipefail
 # Author: Misheck Shawa
 ########################################
 
-VERSION="1.4.1"
+VERSION="${METAAMRPLUS_VERSION:-1.4.1}"
 COLOC_DIST=10000
 MIN_CONTIG_LEN=200
 
