@@ -4,7 +4,7 @@ package:
 
 source:
   url: https://github.com/migshaw03/MetaAMRplus/archive/refs/tags/v1.4.1.tar.gz
-  sha256: 592522161709c3dfbc39fdc81a61afda33578b62297e7a1b3c54c0e622867ab2
+  sha256: 8d0f9f87eebb803b498e0cf3ffd2c574970bd672e915725951ec74f9c4d542e2
 
 build:
   noarch: generic
