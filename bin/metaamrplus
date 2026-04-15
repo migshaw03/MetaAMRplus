@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ########################################
-# MetaAMRplus v1.4.1 (FIXED RELEASE)
+# MetaAMRplus v1.4.1 (STABLE RELEASE)
 # AMR, Metal & Colocalisation Analysis
 # Author: Misheck Shawa
 ########################################
@@ -25,7 +25,38 @@ EOF
 }
 
 ########################################
-# Help / version (SAFE + CLEAN)
+# DB INIT (AUTO DOWNLOADER)
+########################################
+init_db() {
+    echo "========================================"
+    echo " Initializing MetaAMRplus database"
+    echo "========================================"
+
+    if [[ -n "${CONDA_PREFIX:-}" ]]; then
+        DB_BASE="$CONDA_PREFIX/share/metaamrplus"
+    else
+        DB_BASE="$HOME/.metaamrplus"
+    fi
+
+    DB_DIR="$DB_BASE/db"
+    mkdir -p "$DB_DIR"
+
+    echo "Downloading MetaAMRplus DB into: $DB_DIR"
+
+    BASE_URL="https://github.com/migshaw03/MetaAMRplus/releases/download/v1.4.1"
+
+    curl -L "$BASE_URL/MetaAMRplus_DB_v1.0.phr" -o "$DB_DIR/MetaAMRplus_DB_v1.0.phr"
+    curl -L "$BASE_URL/MetaAMRplus_DB_v1.0.pin" -o "$DB_DIR/MetaAMRplus_DB_v1.0.pin"
+    curl -L "$BASE_URL/MetaAMRplus_DB_v1.0.psq" -o "$DB_DIR/MetaAMRplus_DB_v1.0.psq"
+    curl -L "$BASE_URL/MetaAMRplus_v1.0.idmap.tsv" -o "$DB_DIR/MetaAMRplus_v1.0.idmap.tsv"
+    curl -L "$BASE_URL/MetaAMRplus_v1.0.annotations.tsv" -o "$DB_DIR/MetaAMRplus_v1.0.annotations.tsv"
+
+    echo "Database installation complete ✔"
+    exit 0
+}
+
+########################################
+# HELP / VERSION
 ########################################
 case "${1:-}" in
   --version)
@@ -35,45 +66,54 @@ case "${1:-}" in
   --help|-h)
     show_banner
     cat << EOF
+
 Usage:
   metaamrplus genome.fasta
 
-Environment variables:
+Options:
+  --init-db     Download and install required database
+  --help        Show help
+  --version     Show version
+
+Environment Variables:
   METAAMRPLUS_DB       Override DB path
   METAAMRPLUS_RESULTS  Output directory
+
 EOF
     exit 0
+    ;;
+  --init-db)
+    init_db
     ;;
 esac
 
 ########################################
-# Argument check
+# ARG CHECK
 ########################################
 if [[ $# -ne 1 ]]; then
-  show_banner
-  echo "ERROR: Exactly one genome FASTA is required"
-  exit 1
+    show_banner
+    echo "ERROR: Provide exactly one genome FASTA"
+    exit 1
 fi
 
 GENOME="$1"
 [[ -f "$GENOME" ]] || { echo "ERROR: File not found: $GENOME"; exit 1; }
 
 ########################################
-# Paths
+# PATHS
 ########################################
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESULTS_DIR="${METAAMRPLUS_RESULTS:-$PWD/metaamrplus_results}"
 
 ########################################
-# DB resolution (CRITICAL FIX)
+# DB RESOLUTION (ROBUST)
 ########################################
 if [[ -n "${METAAMRPLUS_DB:-}" ]]; then
     DB_BASE="$METAAMRPLUS_DB"
 elif [[ -n "${CONDA_PREFIX:-}" ]]; then
     DB_BASE="$CONDA_PREFIX/share/metaamrplus"
 else
-    echo "ERROR: METAAMRPLUS_DB not set and not running in Conda"
-    exit 1
+    DB_BASE="$HOME/.metaamrplus"
 fi
 
 DB_DIR="$DB_BASE/db"
@@ -83,18 +123,25 @@ IDMAP="$DB_DIR/MetaAMRplus_v1.0.idmap.tsv"
 ANNOT="$DB_DIR/MetaAMRplus_v1.0.annotations.tsv"
 
 ########################################
-# CRITICAL VALIDATION
+# VALIDATE DB
 ########################################
 for f in "$IDMAP" "$ANNOT"; do
   [[ -f "$f" ]] || {
-    echo "ERROR: Missing required DB file: $f"
-    echo "FIX: Reinstall MetaAMRplus conda package"
+    echo "ERROR: Missing DB file: $f"
+    echo "Run: metaamrplus --init-db"
+    exit 1
+  }
+done
+
+for ext in phr pin psq; do
+  [[ -f "${DB_PREFIX}.${ext}" ]] || {
+    echo "ERROR: Missing BLAST DB: ${DB_PREFIX}.${ext}"
     exit 1
   }
 done
 
 ########################################
-# Dependencies
+# DEPENDENCIES
 ########################################
 for tool in prodigal blastp awk python3 sort grep; do
   command -v "$tool" >/dev/null 2>&1 || {
@@ -103,15 +150,8 @@ for tool in prodigal blastp awk python3 sort grep; do
   }
 done
 
-for ext in phr pin psq; do
-  [[ -f "${DB_PREFIX}.${ext}" ]] || {
-    echo "ERROR: BLAST DB missing: ${DB_PREFIX}.${ext}"
-    exit 1
-  }
-done
-
 ########################################
-# Output
+# OUTPUT SETUP
 ########################################
 PREFIX="$(basename "$GENOME")"
 PREFIX="${PREFIX%.*}"
@@ -121,15 +161,15 @@ mkdir -p "$OUTDIR"
 show_banner
 
 ########################################
-# Step 0: FASTA validation
+# STEP 0
 ########################################
 echo "[0/8] FASTA validation"
 grep -q '^>' "$GENOME" || { echo "ERROR: Invalid FASTA"; exit 1; }
 
 ########################################
-# Step 1: Filter contigs
+# STEP 1
 ########################################
-echo "[1/8] Filter contigs < ${MIN_CONTIG_LEN} bp"
+echo "[1/8] Filtering contigs"
 
 FILTERED_FASTA="$OUTDIR/${PREFIX}.filtered.fasta"
 
@@ -152,43 +192,38 @@ awk -v min="$MIN_CONTIG_LEN" '
   }
 ' "$GENOME" > "$FILTERED_FASTA"
 
-if [[ ! -s "$FILTERED_FASTA" ]]; then
-  echo "WARNING: No valid contigs ≥${MIN_CONTIG_LEN} bp"
+[[ -s "$FILTERED_FASTA" ]] || {
+  echo "WARNING: No contigs >= ${MIN_CONTIG_LEN}"
   exit 0
-fi
+}
 
 ########################################
-# Step 2: ORF prediction
+# STEP 2
 ########################################
-echo "[2/8] ORF prediction (Prodigal)"
-
-prodigal \
-  -i "$FILTERED_FASTA" \
+echo "[2/8] ORF prediction"
+prodigal -i "$FILTERED_FASTA" \
   -a "$OUTDIR/${PREFIX}.proteins.faa" \
   -d "$OUTDIR/${PREFIX}.genes.fna" \
-  -f gff \
-  -o "$OUTDIR/${PREFIX}.gff" \
+  -f gff -o "$OUTDIR/${PREFIX}.gff" \
   -p meta >/dev/null 2>&1 || {
-    echo "WARNING: Prodigal failed; skipping genome"
+    echo "WARNING: Prodigal failed"
     exit 0
 }
 
 ########################################
-# Step 3: BLASTP
+# STEP 3
 ########################################
-echo "[3/8] BLASTP vs MetaAMRplus DB"
-
-blastp \
-  -query "$OUTDIR/${PREFIX}.proteins.faa" \
+echo "[3/8] BLASTP"
+blastp -query "$OUTDIR/${PREFIX}.proteins.faa" \
   -db "$DB_PREFIX" \
   -out "$OUTDIR/raw.tsv" \
   -evalue 1e-5 \
   -outfmt "6 qseqid sseqid pident length qlen evalue bitscore"
 
 ########################################
-# Step 4: Best hits
+# STEP 4
 ########################################
-echo "[4/8] Filtering best hits"
+echo "[4/8] Filtering hits"
 
 awk '$3>=95 && ($4/$5)*100>=80' "$OUTDIR/raw.tsv" \
 | sort -k1,1 -k7,7nr \
@@ -196,7 +231,7 @@ awk '$3>=95 && ($4/$5)*100>=80' "$OUTDIR/raw.tsv" \
 > "$OUTDIR/filtered.tsv"
 
 ########################################
-# Step 5: Annotation
+# STEP 5
 ########################################
 echo "[5/8] Annotation"
 
@@ -207,54 +242,54 @@ python3 "$SCRIPT_DIR/annotate_metaamrplus.py" \
   > "$OUTDIR/annotated.tsv"
 
 ########################################
-# Step 6: Remove housekeeping
+# STEP 6
 ########################################
-echo "[6/8] Remove housekeeping genes"
+echo "[6/8] Remove housekeeping"
 
 grep -v -E '\t(gyrA|gyrB|parC|parE|rpoB|rpsL|rrs|folP|murA)\t' \
   "$OUTDIR/annotated.tsv" \
   > "$OUTDIR/acquired.tsv"
 
 ########################################
-# Step 7: Add coordinates
+# STEP 7
 ########################################
-echo "[7/8] Add genomic coordinates"
+echo "[7/8] Coordinates"
 
 {
-  echo -e "query_protein\tmetaamrplus_id\tgene\ttype\tphenotype\tmechanism\tsource\tpident\tcoverage\tbitscore\tcontig\tstart\tend\tstrand"
-  awk -F'\t' -v OFS='\t' '
-    NR==FNR && $3=="CDS" {
-      split($9,a,";")
-      sub(/^ID=/,"",a[1])
-      loc[a[1]]=$1"\t"$4"\t"$5"\t"$7
-      next
-    }
-    NR>FNR && FNR>1 {
-      if ($1 in loc) print $0, loc[$1]
-    }
-  ' "$OUTDIR/${PREFIX}.gff" "$OUTDIR/acquired.tsv"
+echo -e "query_protein\tmetaamrplus_id\tgene\ttype\tphenotype\tmechanism\tsource\tpident\tcoverage\tbitscore\tcontig\tstart\tend\tstrand"
+awk -F'\t' -v OFS='\t' '
+NR==FNR && $3=="CDS" {
+  split($9,a,";")
+  sub(/^ID=/,"",a[1])
+  loc[a[1]]=$1"\t"$4"\t"$5"\t"$7
+  next
+}
+NR>FNR && FNR>1 {
+  if ($1 in loc) print $0, loc[$1]
+}
+' "$OUTDIR/${PREFIX}.gff" "$OUTDIR/acquired.tsv"
 } > "$OUTDIR/final.tsv"
 
 ########################################
-# Step 8: Colocalisation
+# STEP 8
 ########################################
-echo "[8/8] AMR–metal colocalisation (≤${COLOC_DIST} bp)"
+echo "[8/8] Colocalisation"
 
 {
-  echo -e "AMR_gene\tmetal_gene\tcontig\tAMR_start\tAMR_end\tmetal_start\tmetal_end\tdistance_bp"
-  awk -F'\t' -v OFS='\t' -v D="$COLOC_DIST" '
-    NR==FNR && FNR>1 {amr[$11,++n[$11]]=$3"\t"$12"\t"$13; next}
-    NR>FNR && FNR>1 {
-      for(i=1;i<=n[$11];i++){
-        split(amr[$11,i],a,"\t")
-        dist = ($12>a[2] ? $12-a[2] : a[2]-$12)
-        if(dist<=D) print a[1],$3,$11,a[2],a[3],$12,$13,dist
-      }
-    }
-  ' "$OUTDIR/final.tsv" "$OUTDIR/final.tsv"
+echo -e "AMR_gene\tmetal_gene\tcontig\tAMR_start\tAMR_end\tmetal_start\tmetal_end\tdistance_bp"
+awk -F'\t' -v OFS='\t' -v D="$COLOC_DIST" '
+NR==FNR && FNR>1 {amr[$11,++n[$11]]=$3"\t"$12"\t"$13; next}
+NR>FNR && FNR>1 {
+  for(i=1;i<=n[$11];i++){
+    split(amr[$11,i],a,"\t")
+    dist = ($12>a[2] ? $12-a[2] : a[2]-$12)
+    if(dist<=D) print a[1],$3,$11,a[2],a[3],$12,$13,dist
+  }
+}
+' "$OUTDIR/final.tsv" "$OUTDIR/final.tsv"
 } > "$OUTDIR/colocalisation.tsv"
 
 echo
-echo "✔ MetaAMRplus analysis complete"
+echo "✔ DONE"
 echo "✔ Version: $VERSION"
-echo "✔ Results written to: $OUTDIR"
+echo "✔ Output: $OUTDIR"

@@ -1,68 +1,88 @@
-{% set name = "metaamrplus" %}
-{% set version = "1.4.1" %}
-
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: metaamrplus
+  version: 1.4.1
 
 source:
-  url: https://github.com/migshaw03/MetaAMRplus/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: 47c54705eca30762bf2db36f118da96a9e06630c4507dab7d9f6b4b8c98e47e4
+  url: https://github.com/migshaw03/MetaAMRplus/archive/refs/tags/v1.4.1.tar.gz
+  sha256: 592522161709c3dfbc39fdc81a61afda33578b62297e7a1b3c54c0e622867ab2
 
 build:
-  number: 0
   noarch: generic
+  number: 0
   script: |
     set -euo pipefail
 
-    mkdir -p $PREFIX/bin
-    mkdir -p $PREFIX/share/metaamrplus
-    mkdir -p $PREFIX/share/metaamrplus/db
+    # Inject version into runtime
+    export METAAMRPLUS_VERSION="1.4.1"
 
-    # -----------------------------
+    echo "==== MetaAMRplus build starting ===="
+    echo "SRC_DIR: $SRC_DIR"
+    echo "VERSION: $METAAMRPLUS_VERSION"
+
+    mkdir -p "$PREFIX/bin"
+    mkdir -p "$PREFIX/share/metaamrplus/db"
+    mkdir -p "$PREFIX/share/metaamrplus"
+
+    ########################################
     # Install executables
-    # -----------------------------
-    install -m 755 bin/metaamrplus $PREFIX/bin/metaamrplus
-    install -m 755 bin/metaamrplus_batch $PREFIX/bin/metaamrplus_batch
+    ########################################
+    install -m 755 "$SRC_DIR/bin/metaamrplus" "$PREFIX/bin/metaamrplus"
+    install -m 755 "$SRC_DIR/bin/metaamrplus_batch" "$PREFIX/bin/metaamrplus_batch"
 
-    # -----------------------------
+    if [[ -f "$SRC_DIR/bin/metaamrplus-download-db" ]]; then
+      install -m 755 "$SRC_DIR/bin/metaamrplus-download-db" "$PREFIX/bin/metaamrplus-download-db"
+    fi
+
+    ########################################
     # Install annotation script
-    # -----------------------------
-    install -m 755 bin/annotate_metaamrplus.py \
-      $PREFIX/share/metaamrplus/annotate_metaamrplus.py
+    ########################################
+    install -m 755 "$SRC_DIR/bin/annotate_metaamrplus.py" \
+      "$PREFIX/share/metaamrplus/annotate_metaamrplus.py"
 
-    # -----------------------------
-    # FIXED: robust DB installation (GitHub tarball safe)
-    # -----------------------------
-    DB_FOUND=0
+    ########################################
+    # Database handling
+    ########################################
+    DB_DIR="$SRC_DIR/db"
+    echo "Using DB_DIR: $DB_DIR"
 
-    for d in $SRC_DIR/*/db; do
-      if [[ -f "$d/MetaAMRplus_v1.0.idmap.tsv" ]]; then
-
-        cp "$d"/MetaAMRplus_DB_v1.0.* \
-          $PREFIX/share/metaamrplus/db/
-
-        cp "$d"/MetaAMRplus_v1.0.idmap.tsv \
-          $PREFIX/share/metaamrplus/db/
-
-        DB_FOUND=1
-        break
-      fi
-    done
-
-    if [[ "$DB_FOUND" -ne 1 ]]; then
-      echo "ERROR: MetaAMRplus DB files not found in source tree"
+    if [[ ! -d "$DB_DIR" ]]; then
+      echo "ERROR: DB directory not found"
       exit 1
     fi
 
+    echo "Copying BLAST DB files..."
+    cp "$DB_DIR"/MetaAMRplus_DB_v1.0.* "$PREFIX/share/metaamrplus/db/" || true
+
+    ########################################
+    # Optional file (safe)
+    ########################################
+    if [[ -f "$DB_DIR/MetaAMRplus_v1.0.idmap.tsv" ]]; then
+      cp "$DB_DIR/MetaAMRplus_v1.0.idmap.tsv" "$PREFIX/share/metaamrplus/db/"
+      echo "idmap.tsv copied"
+    else
+      echo "WARNING: idmap.tsv not found (skipping safely)"
+    fi
+
+    ########################################
+    # Ensure executables are runnable
+    ########################################
+    chmod +x "$PREFIX/bin/metaamrplus"
+    chmod +x "$PREFIX/bin/metaamrplus_batch"
+
+    echo "==== Build completed successfully ===="
+
 requirements:
-  run:
+  build:
     - bash
+    - coreutils
+
+  run:
     - python >=3.8
+    - bash
+    - coreutils
+    - awk
     - blast
     - prodigal
-    - awk
-    - coreutils
 
 test:
   commands:
@@ -72,8 +92,4 @@ test:
 about:
   home: https://github.com/migshaw03/MetaAMRplus
   license: MIT
-  license_file: LICENSE
-  summary: "MetaAMRplus: detection of AMR and metal resistance genes with colocalisation analysis"
-  description: |
-    MetaAMRplus detects antimicrobial resistance (AMR) and metal resistance genes
-    and evaluates their genomic colocalisation from bacterial genomes.
+  summary: "MetaAMRplus: AMR + metal resistance + colocalisation analysis"
