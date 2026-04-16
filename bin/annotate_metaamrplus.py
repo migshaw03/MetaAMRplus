@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 import sys
 
-VERSION = "1.4.1"
+VERSION = "1.4.3-final"
 
-# -----------------------------
-# Argument check
-# -----------------------------
 if len(sys.argv) != 3:
     sys.stderr.write(
-        f"MetaAMRplus annotate script v{VERSION}\n"
-        "Usage: annotate_metaamrplus.py blast.filtered.tsv idmap.tsv\n"
+        f"MetaAMRplus annotate v{VERSION}\n"
+        "Usage: annotate_metaamrplus.py blast.tsv idmap.tsv\n"
     )
     sys.exit(1)
 
@@ -17,36 +14,21 @@ blast_file = sys.argv[1]
 idmap_file = sys.argv[2]
 
 # -----------------------------
-# Metal keywords & gene systems
-# -----------------------------
-METAL_KEYWORDS = [
-    "copper", "silver", "arsenic", "mercury", "cadmium",
-    "zinc", "nickel", "cobalt", "chromium", "lead",
-    "iron", "manganese", "multimetal", "biocide"
-]
-
-METAL_GENE_PREFIXES = (
-    "pco", "sil", "cus", "ars", "mer", "cop",
-    "czc", "znt", "nik", "rcn", "chr"
-)
-
-# -----------------------------
-# Load ID map
+# LOAD IDMAP
 # -----------------------------
 idmap = {}
 with open(idmap_file) as f:
     for line in f:
-        line = line.strip()
-        if not line:
+        if not line.strip():
             continue
         try:
-            acc, meta = line.split("\t", 1)
-            idmap[acc.strip()] = meta.strip()
-        except ValueError:
+            acc, meta = line.strip().split("\t", 1)
+            idmap[acc] = meta
+        except:
             continue
 
 # -----------------------------
-# Output header
+# HEADER
 # -----------------------------
 print("\t".join([
     "query_protein",
@@ -62,82 +44,76 @@ print("\t".join([
 ]))
 
 # -----------------------------
-# Process BLAST hits
+# PROCESS BLAST
 # -----------------------------
 with open(blast_file) as f:
     for line in f:
-        line = line.strip()
-        if not line:
+        if not line.strip():
             continue
 
-        cols = line.split("\t")
+        cols = line.strip().split("\t")
         if len(cols) < 7:
             continue
 
         qseqid, sseqid, pident, length, qlen, evalue, bitscore = cols
 
-        # Coverage calculation
         try:
             coverage = round((float(length) / float(qlen)) * 100, 2)
-            if coverage > 100:
-                coverage = 100.0
-        except Exception:
+        except:
             coverage = "NA"
 
-        # Lookup annotation
-        meta = idmap.get(sseqid.strip(), "NA")
+        meta = idmap.get(sseqid, "")
 
-        # Default safe values
         gene = "NA"
-        gene_type = "NA"
+        gene_type = "AMR"
         phenotype = "NA"
         mechanism = "NA"
         source = "NA"
 
-        if meta != "NA":
+        is_metal = False
 
-            meta_dict = {}
+        # -----------------------------
+        # PARSE METADATA
+        # -----------------------------
+        if meta:
+            parts = meta.split("|")
 
-            # Structured format
-            if "|" in meta and "=" in meta:
-                for item in meta.split("|"):
-                    if "=" in item:
-                        k, v = item.split("=", 1)
-                        meta_dict[k.strip()] = v.strip()
+            for p in parts:
+                if "=" not in p:
+                    continue
 
-            # Legacy format fallback
-            else:
-                parts = meta.split()
-                if len(parts) >= 1:
-                    meta_dict["gene"] = parts[0]
-                if len(parts) >= 2:
-                    meta_dict["type"] = parts[1]
-                if len(parts) >= 3:
-                    meta_dict["source"] = parts[2]
+                k, v = p.split("=", 1)
+                k = k.strip().lower()
+                v = v.strip()
 
-            gene = meta_dict.get("gene", "NA")
-            gene_type = meta_dict.get("type", "NA")
-            phenotype = meta_dict.get("phenotype", "NA")
-            mechanism = meta_dict.get("mechanism", "NA")
-            source = meta_dict.get("source", "NA")
+                if k == "gene":
+                    gene = v
 
-            # Metal override logic
-            is_metal = False
-
-            if phenotype != "NA":
-                for kw in METAL_KEYWORDS:
-                    if kw in phenotype.lower():
+                elif k == "type":
+                    if v.lower() == "metal":
                         is_metal = True
-                        break
+                        gene_type = "metal"
+                    elif v.lower() == "amr":
+                        if not is_metal:
+                            gene_type = "AMR"
 
-            if gene != "NA":
-                for prefix in METAL_GENE_PREFIXES:
-                    if gene.lower().startswith(prefix):
+                elif k == "phenotype":
+                    phenotype = v
+
+                elif k == "mechanism":
+                    mechanism = v
+
+                elif k == "source":
+                    source = v.lower()
+                    if "bacmet" in source:
                         is_metal = True
-                        break
+                        gene_type = "metal"
 
-            if is_metal:
-                gene_type = "metal"
+        # -----------------------------
+        # FINAL OVERRIDE RULE (DEDUP FIX)
+        # -----------------------------
+        if is_metal:
+            gene_type = "metal"
 
         print("\t".join([
             qseqid,

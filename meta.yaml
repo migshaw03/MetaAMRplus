@@ -7,12 +7,11 @@ source:
   sha256: 8d0f9f87eebb803b498e0cf3ffd2c574970bd672e915725951ec74f9c4d542e2
 
 build:
-  noarch: generic
+  noarch: python
   number: 0
   script: |
     set -euo pipefail
 
-    # Inject version into runtime
     export METAAMRPLUS_VERSION="1.4.1"
 
     echo "==== MetaAMRplus build starting ===="
@@ -23,9 +22,6 @@ build:
     mkdir -p "$PREFIX/share/metaamrplus/db"
     mkdir -p "$PREFIX/share/metaamrplus"
 
-    ########################################
-    # Install executables
-    ########################################
     install -m 755 "$SRC_DIR/bin/metaamrplus" "$PREFIX/bin/metaamrplus"
     install -m 755 "$SRC_DIR/bin/metaamrplus_batch" "$PREFIX/bin/metaamrplus_batch"
 
@@ -33,15 +29,9 @@ build:
       install -m 755 "$SRC_DIR/bin/metaamrplus-download-db" "$PREFIX/bin/metaamrplus-download-db"
     fi
 
-    ########################################
-    # Install annotation script
-    ########################################
     install -m 755 "$SRC_DIR/bin/annotate_metaamrplus.py" \
       "$PREFIX/share/metaamrplus/annotate_metaamrplus.py"
 
-    ########################################
-    # Database handling
-    ########################################
     DB_DIR="$SRC_DIR/db"
     echo "Using DB_DIR: $DB_DIR"
 
@@ -50,22 +40,14 @@ build:
       exit 1
     fi
 
-    echo "Copying BLAST DB files..."
     cp "$DB_DIR"/MetaAMRplus_DB_v1.0.* "$PREFIX/share/metaamrplus/db/" || true
 
-    ########################################
-    # Optional file (safe)
-    ########################################
     if [[ -f "$DB_DIR/MetaAMRplus_v1.0.idmap.tsv" ]]; then
       cp "$DB_DIR/MetaAMRplus_v1.0.idmap.tsv" "$PREFIX/share/metaamrplus/db/"
-      echo "idmap.tsv copied"
     else
       echo "WARNING: idmap.tsv not found (skipping safely)"
     fi
 
-    ########################################
-    # Ensure executables are runnable
-    ########################################
     chmod +x "$PREFIX/bin/metaamrplus"
     chmod +x "$PREFIX/bin/metaamrplus_batch"
 
@@ -76,13 +58,16 @@ requirements:
     - bash
     - coreutils
 
+  host:
+    - python >=3.8
+
   run:
     - python >=3.8
     - bash
     - coreutils
     - awk
     - blast
-    - prodigal
+    - bioconda::prodigal
 
 test:
   commands:
