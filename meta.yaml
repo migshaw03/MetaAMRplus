@@ -1,27 +1,26 @@
 package:
   name: metaamrplus
-  version: 1.4.1
+  version: 1.5.1
 
 source:
-  url: https://github.com/migshaw03/MetaAMRplus/archive/refs/tags/v1.4.1.tar.gz
-  sha256: 8d0f9f87eebb803b498e0cf3ffd2c574970bd672e915725951ec74f9c4d542e2
+  url: https://github.com/migshaw03/MetaAMRplus/archive/refs/tags/v1.5.1.tar.gz
+  sha256: 5ae9181e0eb5b64e929e4980bbef47c7aec7e2c81ae8bfda1d5a3e072b4f89ec
 
 build:
-  noarch: python
+  noarch: generic
   number: 0
   script: |
     set -euo pipefail
 
-    export METAAMRPLUS_VERSION="1.4.1"
-
     echo "==== MetaAMRplus build starting ===="
-    echo "SRC_DIR: $SRC_DIR"
-    echo "VERSION: $METAAMRPLUS_VERSION"
+    echo "VERSION: 1.5.1"
 
     mkdir -p "$PREFIX/bin"
     mkdir -p "$PREFIX/share/metaamrplus/db"
-    mkdir -p "$PREFIX/share/metaamrplus"
 
+    ########################################
+    # Install executables
+    ########################################
     install -m 755 "$SRC_DIR/bin/metaamrplus" "$PREFIX/bin/metaamrplus"
     install -m 755 "$SRC_DIR/bin/metaamrplus_batch" "$PREFIX/bin/metaamrplus_batch"
 
@@ -29,27 +28,29 @@ build:
       install -m 755 "$SRC_DIR/bin/metaamrplus-download-db" "$PREFIX/bin/metaamrplus-download-db"
     fi
 
+    ########################################
+    # Annotation script
+    ########################################
     install -m 755 "$SRC_DIR/bin/annotate_metaamrplus.py" \
-      "$PREFIX/share/metaamrplus/annotate_metaamrplus.py"
+      "$PREFIX/bin/annotate_metaamrplus.py"
 
+    ########################################
+    # Database
+    ########################################
     DB_DIR="$SRC_DIR/db"
-    echo "Using DB_DIR: $DB_DIR"
-
-    if [[ ! -d "$DB_DIR" ]]; then
-      echo "ERROR: DB directory not found"
-      exit 1
-    fi
 
     cp "$DB_DIR"/MetaAMRplus_DB_v1.0.* "$PREFIX/share/metaamrplus/db/" || true
 
     if [[ -f "$DB_DIR/MetaAMRplus_v1.0.idmap.tsv" ]]; then
       cp "$DB_DIR/MetaAMRplus_v1.0.idmap.tsv" "$PREFIX/share/metaamrplus/db/"
-    else
-      echo "WARNING: idmap.tsv not found (skipping safely)"
     fi
 
+    ########################################
+    # Permissions
+    ########################################
     chmod +x "$PREFIX/bin/metaamrplus"
     chmod +x "$PREFIX/bin/metaamrplus_batch"
+    chmod +x "$PREFIX/bin/annotate_metaamrplus.py"
 
     echo "==== Build completed successfully ===="
 
@@ -65,14 +66,13 @@ requirements:
     - python >=3.8
     - bash
     - coreutils
-    - awk
+    - gawk
     - blast
     - bioconda::prodigal
 
 test:
   commands:
     - metaamrplus --help
-    - metaamrplus --version
 
 about:
   home: https://github.com/migshaw03/MetaAMRplus

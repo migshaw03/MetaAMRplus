@@ -2,11 +2,11 @@
 set -euo pipefail
 
 ########################################
-# MetaAMRplus v1.5 (Stable)
+# MetaAMRplus v1.5.1 (Stable)
 # Author: Misheck Shawa
 ########################################
 
-VERSION="${METAAMRPLUS_VERSION:-1.5}"
+VERSION="1.5.1"
 COLOC_DIST=10000
 MIN_CONTIG_LEN=200
 
@@ -194,20 +194,17 @@ NR>FNR && FNR>1 {
 } > "$OUTDIR/final.tsv"
 
 ########################################
-# STEP 8 (FIXED)
+# STEP 8
 ########################################
 echo "[8/9] Colocalisation"
 
 awk -F'\t' -v OFS='\t' -v D="$COLOC_DIST" '
-
 BEGIN {
     print "amr_gene","metal_gene","contig",
           "amr_start","amr_end","metal_start","metal_end",
           "distance_bp","relationship"
 }
-
 NR==1 { next }
-
 {
     contig = $11
     start  = $12
@@ -224,12 +221,10 @@ NR==1 { next }
         metal[contig,nM[contig]] = gene"\t"start"\t"end
     }
 }
-
 END {
     for (c in nM) {
         for (i = 1; i <= nM[c]; i++) {
             split(metal[c,i], m, "\t")
-
             for (j = 1; j <= nA[c]; j++) {
                 split(amr[c,j], a, "\t")
 
@@ -243,7 +238,6 @@ END {
 
                 if (dist <= D) {
                     relationship = (dist == 0 ? "overlapping" : "nearby")
-
                     print a[1], m[1], c,
                           a[2], a[3],
                           m[2], m[3],
@@ -256,18 +250,15 @@ END {
 ' "$OUTDIR/final.tsv" > "$OUTDIR/AMR_metal_colocalised.tsv"
 
 ########################################
-# STEP 9 (CLUSTERS)
+# STEP 9
 ########################################
 echo "[9/9] Cluster detection"
 
 awk -F'\t' -v OFS='\t' -v D="$COLOC_DIST" '
-
 BEGIN {
 print "cluster_id","contig","cluster_start","cluster_end","num_amr","num_metal","genes"
 }
-
 NR==1{next}
-
 {
 c=$11
 s=$12
@@ -281,12 +272,9 @@ E[c,n[c]]=e
 T[c,n[c]]=t
 G[c,n[c]]=g
 }
-
 END{
 cid=0
-
 for(c in n){
-
 for(i=1;i<=n[c];i++){
 for(j=i+1;j<=n[c];j++){
 if(S[c,i]>S[c,j]){
@@ -303,24 +291,18 @@ if(T[c,1]=="AMR")a++
 if(T[c,1]=="metal")m++
 
 for(i=2;i<=n[c];i++){
-
 gap=S[c,i]-ce
 
 if(gap<=D){
 if(E[c,i]>ce)ce=E[c,i]
-
 if(T[c,i]=="AMR")a++
 if(T[c,i]=="metal")m++
-
 genes=genes","G[c,i]
-
 }else{
-
 if(a>0 && m>0){
 cid++
 print "cluster_"cid,c,cs,ce,a,m,genes
 }
-
 cs=S[c,i]; ce=E[c,i]
 a=(T[c,i]=="AMR")
 m=(T[c,i]=="metal")
