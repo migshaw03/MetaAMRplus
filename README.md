@@ -14,10 +14,8 @@ v.	Supports single genomes and batch processing
 vi.	Designed for reproducible analyses via Conda/Bioconda
 
 **Installation**
-MetaAMRplus is distributed via Bioconda.
-To install this package, run the following:
-
-conda install bioconda::metaamrplus
+conda create -n metaamrplus_env -c conda-forge -c bioconda metaamrplus
+conda activate metaamrplus_env
 
 This installs the following commands:
 i.	metaamrplus
