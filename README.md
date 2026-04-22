@@ -70,7 +70,7 @@ METAAMRPLUS_RESULTS	Custom output directory
 
 **Versioning**
 MetaAMRplus follows semantic versioning.
-The current release is v1.4.1.
+The current release is v1.5.1.
 
 **License**
 MetaAMRplus is released under the MIT License.
